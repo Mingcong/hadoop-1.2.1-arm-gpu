@@ -165,6 +165,8 @@ abstract public class Task implements Writable, Configurable {
   protected TaskUmbilicalProtocol umbilical;
   protected SecretKey tokenSecret;
   protected JvmContext jvmContext;
+  
+  protected boolean runOnGPU = false;
 
   ////////////////////////////////////////////
   // Constructors
@@ -197,6 +199,10 @@ abstract public class Task implements Writable, Configurable {
   ////////////////////////////////////////////
   // Accessors
   ////////////////////////////////////////////
+  public void setRunOnGPU(boolean runOnGPU) { this.runOnGPU = runOnGPU; };
+  public boolean runOnCPU() { return !this.runOnGPU; };
+  public boolean runOnGPU() { return this.runOnGPU; };
+  
   public void setJobFile(String jobFile) { this.jobFile = jobFile; }
   public String getJobFile() { return jobFile; }
   public TaskAttemptID getTaskID() { return taskId; }
@@ -425,7 +431,8 @@ abstract public class Task implements Writable, Configurable {
     }
     out.writeBoolean(jobSetup);
     out.writeBoolean(writeSkipRecs);
-    out.writeBoolean(taskCleanup); 
+    out.writeBoolean(taskCleanup);
+    out.writeBoolean(runOnGPU);
     Text.writeString(out, user);
   }
   
@@ -450,6 +457,7 @@ abstract public class Task implements Writable, Configurable {
     if (taskCleanup) {
       setPhase(TaskStatus.Phase.CLEANUP);
     }
+    runOnGPU = in.readBoolean();
     user = Text.readString(in);
   }
 

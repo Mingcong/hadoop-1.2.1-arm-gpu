@@ -3018,6 +3018,9 @@ public class JobTracker implements MRConstants, InterTrackerProtocol,
       } else {
         List<Task> tasks = getSetupAndCleanupTasks(taskTrackerStatus);
         if (tasks == null ) {
+        	for (TaskStatus t : taskTrackerStatus.getTaskReports()) {
+        		System.out.println(t.getStateString());
+        	}
           tasks = taskScheduler.assignTasks(taskTrackers.get(trackerName));
         }
         if (tasks != null) {
@@ -3026,6 +3029,18 @@ public class JobTracker implements MRConstants, InterTrackerProtocol,
             if(LOG.isDebugEnabled()) {
               LOG.debug(trackerName + " -> LaunchTask: " + task.getTaskID());
             }
+///////////////////// Add code /////////////////////    
+            TaskReport[] as = this.getMapTaskReports(task.getJobID());
+            
+            for (TaskReport a : as) {
+            	if (a.getFinishTime()!= 0) {
+            		LOG.info("YYYY " + a.getTaskID() + " " + (a.getFinishTime() - a.getStartTime()) + " [ms].");
+            	}
+            	if(task.getTaskID().getTaskID() == a.getTaskID()) {
+            		a.setRunOnGPU(task.runOnGPU());
+            	}
+              }
+/////////////////////    End   /////////////////////              
             actions.add(new LaunchTaskAction(task));
           }
         }

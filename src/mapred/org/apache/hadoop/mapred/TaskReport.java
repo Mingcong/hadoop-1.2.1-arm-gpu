@@ -42,6 +42,9 @@ public class TaskReport implements Writable {
   private Collection<TaskAttemptID> runningAttempts = 
     new ArrayList<TaskAttemptID>();
   private TaskAttemptID successfulAttempt = new TaskAttemptID();
+  
+  private boolean runOnGPU;
+  
   public TaskReport() {
     taskid = new TaskID();
   }
@@ -89,7 +92,22 @@ public class TaskReport implements Writable {
     this.finishTime = finishTime;
     this.counters = counters;
   }
-    
+ 
+  TaskReport(TaskID taskid, float progress, String state,
+          String[] diagnostics, TIPStatus currentStatus, 
+          long startTime, long finishTime,
+          Counters counters, boolean runOnGPU) {
+	  this.taskid = taskid;
+	  this.progress = progress;
+	  this.state = state;
+	  this.diagnostics = diagnostics;
+	  this.currentStatus = currentStatus;
+	  this.startTime = startTime; 
+	  this.finishTime = finishTime;
+	  this.counters = counters;
+	  this.runOnGPU = runOnGPU;
+}
+  
   /** @deprecated use {@link #getTaskID()} instead */
   @Deprecated
   public String getTaskId() { return taskid.toString(); }
@@ -106,6 +124,16 @@ public class TaskReport implements Writable {
   /** The current status */
   public TIPStatus getCurrentStatus() {
     return currentStatus;
+  }
+  
+
+  public boolean getRunOnGPU() {
+    return runOnGPU;
+  }
+
+
+  void setRunOnGPU(boolean runongpu) {
+	  runOnGPU = runongpu;
   }
   
   /**
@@ -199,6 +227,7 @@ public class TaskReport implements Writable {
     Text.writeString(out, state);
     out.writeLong(startTime);
     out.writeLong(finishTime);
+    out.writeBoolean(runOnGPU);
     WritableUtils.writeStringArray(out, diagnostics);
     counters.write(out);
     WritableUtils.writeEnum(out, currentStatus);
@@ -220,6 +249,7 @@ public class TaskReport implements Writable {
     this.state = Text.readString(in);
     this.startTime = in.readLong(); 
     this.finishTime = in.readLong();
+    this.runOnGPU = in.readBoolean();
     
     diagnostics = WritableUtils.readStringArray(in);
     counters = new Counters();
