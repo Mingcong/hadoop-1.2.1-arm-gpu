@@ -359,9 +359,18 @@ public class Submitter extends Configured implements Tool {
 	      throw ie;
 	    }
     }
-    if (gpubin!=null) {
+    if (cpubin!=null && gpubin!=null) {
     	try {
 	    	fileCache[1] = new URI(gpubin);
+    	} catch (URISyntaxException e) {
+	    	IOException ie = new IOException("Problem parsing execable URI " + gpubin);
+	    	ie.initCause(e);
+	    	throw ie;
+    	}
+    }
+    if (cpubin==null && gpubin!=null) {
+    	try {
+	    	fileCache[0] = new URI(gpubin);
     	} catch (URISyntaxException e) {
 	    	IOException ie = new IOException("Problem parsing execable URI " + gpubin);
 	    	ie.initCause(e);

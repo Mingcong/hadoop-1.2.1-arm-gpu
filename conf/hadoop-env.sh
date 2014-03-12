@@ -10,7 +10,7 @@
 export JAVA_HOME=/usr/lib/jvm/java-1.6.0-openjdk-amd64
 # Extra Java CLASSPATH elements.  Optional.
 # export HADOOP_CLASSPATH=
-
+export HADOOP_HOME_WARN_SUPPRESS=1
 # The maximum amount of heap to use, in MB. Default is 1000.
 # export HADOOP_HEAPSIZE=2000
 
