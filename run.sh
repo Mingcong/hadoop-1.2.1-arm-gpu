@@ -11,5 +11,5 @@ bin/hadoop dfs -rmr output
 bin/hadoop pipes -D hadoop.pipes.java.recordreader=true\
  -D hadoop.pipes.java.recordwriter=true\
  -output output\
- -program bin/cpu-kmeans2D\
+ -program  bin/gpu-kmeans1D\
  -input $1

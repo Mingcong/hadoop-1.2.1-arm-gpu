@@ -45,6 +45,7 @@ import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.util.ClassUtil;
 import org.apache.hadoop.util.ReflectionUtils;
 import org.apache.hadoop.util.Tool;
+import org.apache.hadoop.mapred.pipes.PipesGPUMapRunner;
 
 /** 
  * A map/reduce job configuration.
@@ -986,6 +987,16 @@ public class JobConf extends Configuration {
     return getClass("mapred.map.runner.class",
                     MapRunner.class, MapRunnable.class);
   }
+  /**
+   * Get the {@link MapRunnable} class for the gpu job.
+   * 
+   * @return the {@link MapRunnable} class for the gpu job.
+   */
+  public Class<? extends MapRunnable> getGPUMapRunnerClass() {
+    return getClass("mapred.map.runner.gpu.class",
+    		PipesGPUMapRunner.class, MapRunnable.class);
+  } 
+ 
   
   /**
    * Expert: Set the {@link MapRunnable} class for the job.
@@ -997,7 +1008,10 @@ public class JobConf extends Configuration {
   public void setMapRunnerClass(Class<? extends MapRunnable> theClass) {
     setClass("mapred.map.runner.class", theClass, MapRunnable.class);
   }
-
+  
+  public void setGPUMapRunnerClass(Class<? extends MapRunnable> theClass) {
+	    setClass("mapred.map.runner.gpu.class", theClass, MapRunnable.class);
+	  }
   /**
    * Get the {@link Partitioner} used to partition {@link Mapper}-outputs 
    * to be sent to the {@link Reducer}s.

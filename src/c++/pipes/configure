@@ -4806,7 +4806,8 @@ _ACEOF
 else
   { { echo "$as_me:$LINENO: error: Cannot find libssl.so" >&5
 echo "$as_me: error: Cannot find libssl.so" >&2;}
-   { (exit please check); exit please check; }; }
+#   { (exit please check); exit please check; }; }
+  }
 fi
 
 

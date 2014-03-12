@@ -79,6 +79,26 @@ class Application<K1 extends WritableComparable, V1 extends Writable,
    * @param reporter the reporter for the task
    * @param outputKeyClass the class of the output keys
    * @param outputValueClass the class of the output values
+   * @throws InterruptedException 
+   * @throws IOException 
+   */
+  Application(JobConf conf,
+          RecordReader<FloatWritable, NullWritable> recordReader,
+          OutputCollector<K2,V2> output, Reporter reporter,
+          Class<? extends K2> outputKeyClass,
+          Class<? extends V2> outputValueClass) throws IOException, InterruptedException {
+          this(conf, recordReader, output, reporter, outputKeyClass, outputValueClass, false);
+  }
+
+
+  /**
+   * Start the child process to handle the task for us.
+   * @param conf the task's configuration
+   * @param recordReader the fake record reader to update progress with
+   * @param output the collector to send output to
+   * @param reporter the reporter for the task
+   * @param outputKeyClass the class of the output keys
+   * @param outputValueClass the class of the output values
    * @throws IOException
    * @throws InterruptedException
    */
@@ -86,7 +106,8 @@ class Application<K1 extends WritableComparable, V1 extends Writable,
               RecordReader<FloatWritable, NullWritable> recordReader, 
               OutputCollector<K2,V2> output, Reporter reporter,
               Class<? extends K2> outputKeyClass,
-              Class<? extends V2> outputValueClass
+              Class<? extends V2> outputValueClass,
+              boolean runOnGPU
               ) throws IOException, InterruptedException {
     serverSocket = new ServerSocket(0);
     Map<String, String> env = new HashMap<String,String>();
@@ -112,11 +133,22 @@ class Application<K1 extends WritableComparable, V1 extends Writable,
       cmd.add(interpretor);
     }
 
-    String executable = DistributedCache.getLocalCacheFiles(conf)[0].toString();
+    //String executable = DistributedCache.getLocalCacheFiles(conf)[0].toString();
+
+    // Check whether the applicaton will run on GPU and take right executable
+    String executable = null;
+    try {
+        executable = DistributedCache.getLocalCacheFiles(conf)[(runOnGPU)?1:0].toString();
+    } catch (Exception e){
+        //if executable (GPU) missing?
+        LOG.info("ERROR: "+((Integer.parseInt(e.getMessage())==1)?"GPU ":"CPU")+" executable is missing!");
+        throw new IOException(((Integer.parseInt(e.getMessage())==1)?"GPU":"CPU")+" executable is missing!");
+    }
+    
     if (!new File(executable).canExecute()) {
-      // LinuxTaskController sets +x permissions on all distcache files already.
-      // In case of DefaultTaskController, set permissions here.
-      FileUtil.chmod(executable, "u+x");
+        // LinuxTaskController sets +x permissions on all distcache files already.
+        // In case of DefaultTaskController, set permissions here.
+        FileUtil.chmod(executable, "u+x");
     }
     cmd.add(executable);
     // wrap the command in a stdout/stderr capture
