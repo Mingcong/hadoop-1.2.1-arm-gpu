@@ -1,4 +1,7 @@
 /**
+ * 
+ * Modified for Hadoop based on ARM+GPU
+ * 
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -321,8 +324,8 @@ public class Submitter extends Configured implements Tool {
     //String exec = getExecutable(conf);
     String cpubin = getCPUExecutable(conf);
     String gpubin = getGPUExecutable(conf);
-    LOG.info("DEBUG: cpubin = '" + cpubin+"'");
-    LOG.info("DEBUG: gpubin = '" + gpubin+"'");
+    LOG.info("Info: cpubin = '" + cpubin+"'");
+    LOG.info("Info: gpubin = '" + gpubin+"'");
     //if (exec == null) {
     if (cpubin == null && gpubin == null) {
       throw new IllegalArgumentException("No application program defined.");

@@ -1,4 +1,7 @@
 /**
+ * 
+ * Modified for Hadoop based on ARM+GPU
+ * 
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -133,8 +136,16 @@ public class TaskGraphServlet extends HttpServlet {
       if(isMap) {
         float progress = getMapAvarageProgress(tasksPerBar, i, reports);
         int barHeight = (int)Math.ceil(height * progress);
-        int y = height - barHeight + ymargin;
-        printRect(out, barWidth, barHeight,x , y , colors[2]);
+        int y = height - barHeight + ymargin; 
+    	// distinguish colors of bar from tasks run on CPUs or on GPUs
+		 if(reports[barCnt].getRunOnGPU() == true) {
+			 printRect(out, barWidth, barHeight,x , y , colors[0]);
+		 }
+		 else{
+			 printRect(out, barWidth, barHeight,x , y , colors[2]);			 	
+		 }	
+		 
+        //printRect(out, barWidth, barHeight,x , y , colors[2]);
       }
       else {
         float[] progresses 

@@ -1,4 +1,7 @@
 /**
+ * 
+ * Modified for Hadoop based on ARM+GPU
+ * 
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -107,7 +110,7 @@ class JobQueueTaskScheduler extends TaskScheduler {
     final int trackerRunningGPUMaps = taskTrackerStatus.countGPUMapTasks();
     final int trackerRunningReduces = taskTrackerStatus.countReduceTasks();
     
-    LOG.info("DEBUG ************* assignTasks started!!!");
+    LOG.info("DEBUG ************* assignTasks starte on Tracker: "+ taskTracker.getTrackerName());
     LOG.info("DEBUG trackerMapCapacity : " + trackerMapCapacity);
     LOG.info("DEBUG trackerCPUMapCapacity : " + trackerCPUMapCapacity);
     LOG.info("DEBUG trackerGPUMapCapacity : " + trackerGPUMapCapacity);
@@ -197,7 +200,10 @@ class JobQueueTaskScheduler extends TaskScheduler {
     int availableMapSlots = trackerMapCapacity - trackerRunningMaps;
     int availableCPUMapSlots = trackerCPUMapCapacity - trackerRunningCPUMaps;
     int availableGPUMapSlots = trackerGPUMapCapacity - trackerRunningGPUMaps;
-
+    
+    LOG.info("DEBUG: availableMapSlots : " + availableMapSlots);
+    LOG.info("DEBUG: availableCPUMapSlots : " + availableCPUMapSlots);
+    LOG.info("DEBUG: availableGPUMapSlots : " + availableGPUMapSlots);
     
     boolean exceededMapPadding = false;
     
@@ -206,12 +212,10 @@ class JobQueueTaskScheduler extends TaskScheduler {
     
     int numLocalMaps = 0;
     int numNonLocalMaps = 0;
-    LOG.info("XXXX availableMapSlots : " + availableMapSlots);
-    LOG.info("XXXX availableCPUMapSlots : " + availableCPUMapSlots);
-    LOG.info("XXXX availableGPUMapSlots : " + availableGPUMapSlots);
+
     
     
-    if(!(Math.max(pendingMapLoad, 0) < accelarationFactor * trackerGPUMapCapacity * numTaskTrackers)){
+    if((Math.max(pendingMapLoad, 0) > accelarationFactor * trackerGPUMapCapacity) && (trackerCPUMapCapacity > 0) ){
     	
     	LOG.info("DEBUG: ************* try to assign to CPU");
     	
@@ -232,7 +236,7 @@ class JobQueueTaskScheduler extends TaskScheduler {
        				if (t != null) {
        					assignedTasks.add(t);
        					++numLocalMaps;
-       					LOG.info("DEBUG: ************* assign to CPU");
+       					LOG.info("DEBUG: "+ t.toString() + " assign NewNodeLocalMapTask to CPU");
        					break;
        				}
        				
@@ -241,7 +245,8 @@ class JobQueueTaskScheduler extends TaskScheduler {
        				if (t != null) {
        					assignedTasks.add(t);
        					++numNonLocalMaps;
-       					LOG.info("DEBUG: ************* assign to CPU");
+       					//LOG.info("DEBUG: ************* assign to CPU");
+       					LOG.info("DEBUG: "+ t.toString() + " assign NewNonLocalMapTask to CPU");
        					break scheduleCPUMaps;
        				}
     			}
@@ -277,7 +282,8 @@ class JobQueueTaskScheduler extends TaskScheduler {
    					t.setRunOnGPU(true);
    					assignedTasks.add(t);
    					++numLocalMaps;
-   					LOG.info("DEBUG: ************* assign to GPU");
+   					//LOG.info("DEBUG: ************* assign to GPU");
+   					LOG.info("DEBUG: "+ t.toString() + " assign NewNodeLocalMapTask to GPU");
    					break;
    				}
    				
@@ -288,7 +294,8 @@ class JobQueueTaskScheduler extends TaskScheduler {
    					t.setRunOnGPU(true);
    					assignedTasks.add(t);
    					++numNonLocalMaps;
-   					LOG.info("DEBUG: ************* assign to GPU");
+   					//LOG.info("DEBUG: ************* assign to GPU");
+   					LOG.info("DEBUG: "+ t.toString() + " assign NewNonLocalMapTask to GPU");
    					break scheduleGPUMaps;
    				}
    			}
