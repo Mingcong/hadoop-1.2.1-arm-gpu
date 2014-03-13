@@ -60,7 +60,8 @@ public abstract class TaskStatus implements Writable, Cloneable {
   private Counters counters;
   private boolean includeCounters;
   private SortedRanges.Range nextRecordRange = new SortedRanges.Range();
-
+  private boolean runOnGPU;
+  
   public TaskStatus() {
     taskid = new TaskAttemptID();
     numSlots = 0;
@@ -381,6 +382,14 @@ public abstract class TaskStatus implements Writable, Cloneable {
     }
   }
   
+  
+  public void setRunOnGPU(boolean runOnGPU) { this.runOnGPU = runOnGPU; }
+  
+  public boolean runOnCPU() { return !runOnGPU; }
+
+  public boolean runOnGPU() { return runOnGPU; }
+  
+  
   //////////////////////////////////////////////
   // Writable
   //////////////////////////////////////////////
@@ -400,6 +409,7 @@ public abstract class TaskStatus implements Writable, Cloneable {
       counters.write(out);
     }
     nextRecordRange.write(out);
+    out.writeBoolean(runOnGPU);
   }
 
   public void readFields(DataInput in) throws IOException {
@@ -419,6 +429,7 @@ public abstract class TaskStatus implements Writable, Cloneable {
       counters.readFields(in);
     }
     nextRecordRange.readFields(in);
+    this.runOnGPU = in.readBoolean();
   }
   
   //////////////////////////////////////////////////////////////////////////////
@@ -449,6 +460,19 @@ public abstract class TaskStatus implements Writable, Cloneable {
                                           diagnosticInfo, stateString, 
                                           taskTracker, phase, counters);
   }
+  
+  static TaskStatus createTaskStatus(boolean isMap, TaskAttemptID taskId, 
+          							 float progress, int numSlots,
+          							 State runState, String diagnosticInfo,
+          							 String stateString, String taskTracker,
+          							 Phase phase, boolean runOnGPU, Counters counters) { 
+	  return (isMap) ? new MapTaskStatus(taskId, progress, numSlots, runState, 
+			  							 diagnosticInfo, stateString, taskTracker, 
+			  							 phase, runOnGPU, counters) :
+			  		   new ReduceTaskStatus(taskId, progress, numSlots, runState, 
+			  				   				diagnosticInfo, stateString, 
+			  				   				taskTracker, phase, counters);
+}
   
   static TaskStatus createTaskStatus(boolean isMap) {
     return (isMap) ? new MapTaskStatus() : new ReduceTaskStatus();

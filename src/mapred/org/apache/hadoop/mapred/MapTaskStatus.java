@@ -29,7 +29,15 @@ class MapTaskStatus extends TaskStatus {
     super(taskid, progress, numSlots, runState, diagnosticInfo, stateString,
           taskTracker, phase, counters);
   }
-
+  
+  public MapTaskStatus(TaskAttemptID taskid, float progress, int numSlots,
+          State runState, String diagnosticInfo, String stateString,
+          String taskTracker, Phase phase, boolean runOnGPU, Counters counters) {
+    super(taskid, progress, numSlots, runState, diagnosticInfo, stateString,
+          taskTracker, phase, counters);
+    this.setRunOnGPU(runOnGPU);
+  }
+ 
   @Override
   public boolean getIsMap() {
     return true;

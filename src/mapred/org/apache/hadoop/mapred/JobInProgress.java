@@ -106,6 +106,8 @@ public class JobInProgress {
   int runningMapTasks = 0;
   int runningReduceTasks = 0;
   int finishedMapTasks = 0;
+  int finishedCPUMapTasks = 0;
+  int finishedGPUMapTasks = 0;
   int finishedReduceTasks = 0;
   int failedMapTasks = 0; 
   int failedReduceTasks = 0;
@@ -488,6 +490,68 @@ public class JobInProgress {
     }
   }
 
+  
+  //return mean execution time of already finished map tasks
+  public int getMapTaskMeanTime(){
+	  int totalTime = 0;
+	  int numTask = 0;
+	  TaskReport[] as = null;
+	try {
+		as = jobtracker.getMapTaskReports(jobId);
+	} catch (IOException e) {
+		// TODO Auto-generated catch block
+		e.printStackTrace();
+	}
+	  for (TaskReport a : as) {
+		  if (a.getFinishTime() != 0) {
+			  totalTime += a.getFinishTime() - a.getStartTime();
+			  numTask++;
+		  }
+	  }
+	  return numTask == 0 ? 0 : totalTime / numTask;
+  }
+
+  public int getCPUMapTaskMeanTime(){
+	  int totalTime = 0;
+	  int numTask = 0;
+	  TaskReport[] as = null;
+	try {
+		as = jobtracker.getMapTaskReports(jobId);
+	} catch (IOException e) {
+		// TODO Auto-generated catch block
+		e.printStackTrace();
+	}
+	  for (TaskReport a : as) {
+		  if (a.getFinishTime() != 0
+				  && jobtracker.getTaskStatus(a.getSuccessfulTaskAttempt()).runOnCPU()) {
+			  totalTime += a.getFinishTime() - a.getStartTime();
+			  numTask++;
+		  }
+	  }
+	  return numTask == 0 ? 0 : totalTime / numTask;
+  }
+
+  public int getGPUMapTaskMeanTime(){
+	  int totalTime = 0;
+	  int numTask = 0;
+	  TaskReport[] as = null;
+	try {
+		as = jobtracker.getMapTaskReports(jobId);
+	} catch (IOException e) {
+		// TODO Auto-generated catch block
+		e.printStackTrace();
+	}
+	  for (TaskReport a : as) {
+		  if (a.getFinishTime() != 0
+				  && jobtracker.getTaskStatus(a.getSuccessfulTaskAttempt()).runOnGPU()) {				  
+			  totalTime += a.getFinishTime() - a.getStartTime();
+			  numTask++;
+		  }
+	  }
+	  return numTask == 0 ? 0 : totalTime / numTask;
+  }
+  
+  
   /**
    * Get the QueueMetrics object associated with this job
    * @return QueueMetrics
@@ -863,6 +927,12 @@ public class JobInProgress {
   }
   public synchronized int finishedMaps() {
     return finishedMapTasks;
+  }
+  public synchronized int finishedCPUMaps() {
+	  return finishedCPUMapTasks;
+  }
+  public synchronized int finishedGPUMaps() {
+	  return finishedGPUMapTasks;
   }
   public int desiredReduces() {
     return numReduceTasks;
@@ -2698,6 +2768,11 @@ public class JobInProgress {
         speculativeMapTasks -= (oldNumAttempts - newNumAttempts);
       }
       finishedMapTasks += 1;
+      if(status.runOnCPU()) {
+    	  finishedCPUMapTasks += 1;
+      } else {
+    	  finishedGPUMapTasks += 1;
+      }
       metrics.completeMap(taskid);
       this.queueMetrics.completeMap(taskid);
       // remove the completed map from the resp running caches
@@ -3070,6 +3145,8 @@ public class JobInProgress {
         // racks/switches, if the input split blocks were present there too)
         failMap(tip);
         finishedMapTasks -= 1;
+        finishedCPUMapTasks -= 1;
+        finishedGPUMapTasks -= 1;
       }
     }
         
