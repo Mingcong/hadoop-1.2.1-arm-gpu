@@ -519,7 +519,11 @@ class TaskInProgress {
     TaskReport report = new TaskReport
       (getTIPId(), (float)progress, state,
        diagnostics.toArray(new String[diagnostics.size()]),
-       currentStatus, execStartTime, execFinishTime, counters);
+       currentStatus, execStartTime, execFinishTime, counters, false);
+    if(firstTaskId != null && jobtracker != null && jobtracker.getTaskStatus(firstTaskId) != null) {
+//    	LOG.info("AAAA " + jobtracker.getTaskStatus(firstTaskId).runOnGPU());
+    	report.setRunOnGPU(jobtracker.getTaskStatus(firstTaskId).runOnGPU());
+    }
     if (currentStatus == TIPStatus.RUNNING) {
       report.setRunningTaskAttempts(activeTasks.keySet());
     } else if (currentStatus == TIPStatus.COMPLETE) {

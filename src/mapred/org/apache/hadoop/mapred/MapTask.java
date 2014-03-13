@@ -423,8 +423,12 @@ class MapTask extends Task {
     } else { 
       collector = new DirectMapOutputCollector(umbilical, job, reporter);
     }
-    MapRunnable<INKEY,INVALUE,OUTKEY,OUTVALUE> runner =
-      ReflectionUtils.newInstance(job.getMapRunnerClass(), job);
+    MapRunnable<INKEY,INVALUE,OUTKEY,OUTVALUE> runner = null;
+    if (runOnGPU) {
+    	runner = ReflectionUtils.newInstance(job.getGPUMapRunnerClass(), job);
+    } else {
+    	runner = ReflectionUtils.newInstance(job.getMapRunnerClass(), job);
+    }
 
     try {
       runner.run(in, new OldOutputCollector(collector, conf), reporter);

@@ -52,7 +52,9 @@ public class TaskTrackerStatus implements Writable {
   List<TaskStatus> taskReports;
     
   volatile long lastSeen;
-  private int maxMapTasks;
+  //private int maxMapTasks;
+  private int maxCPUMapSlots;
+  private int maxGPUMapSlots;
   private int maxReduceTasks;
   private TaskTrackerHealthStatus healthStatus;
    
@@ -359,7 +361,7 @@ public class TaskTrackerStatus implements Writable {
   public TaskTrackerStatus(String trackerName, String host, 
                            int httpPort, List<TaskStatus> taskReports, 
                            int taskFailures, int dirFailures,
-                           int maxMapTasks, int maxReduceTasks) {
+                           int maxCPUMapSlots, int maxReduceTasks) {
     this.trackerName = trackerName;
     this.host = host;
     this.httpPort = httpPort;
@@ -367,12 +369,31 @@ public class TaskTrackerStatus implements Writable {
     this.taskReports = new ArrayList<TaskStatus>(taskReports);
     this.taskFailures = taskFailures;
     this.dirFailures = dirFailures;
-    this.maxMapTasks = maxMapTasks;
+    this.maxCPUMapSlots = maxCPUMapSlots;
+    this.maxGPUMapSlots = 0;
     this.maxReduceTasks = maxReduceTasks;
     this.resStatus = new ResourceStatus();
     this.healthStatus = new TaskTrackerHealthStatus();
   }
+  
+  public TaskTrackerStatus(String trackerName, String host, 
+          int httpPort, List<TaskStatus> taskReports, 
+          int taskFailures, int dirFailures,
+          int maxCPUMapSlots, int maxGPUMapSlots, int maxReduceTasks) {
+	    this.trackerName = trackerName;
+	    this.host = host;
+	    this.httpPort = httpPort;
 
+	    this.taskReports = new ArrayList<TaskStatus>(taskReports);
+	    this.taskFailures = taskFailures;
+	    this.dirFailures = dirFailures;
+	    this.maxCPUMapSlots = maxCPUMapSlots;
+	    this.maxGPUMapSlots = maxGPUMapSlots;
+	    this.maxReduceTasks = maxReduceTasks;
+	    this.resStatus = new ResourceStatus();
+	    this.healthStatus = new TaskTrackerHealthStatus();
+}
+ 
   /**
    */
   public String getTrackerName() {
@@ -443,7 +464,39 @@ public class TaskTrackerStatus implements Writable {
     }
     return mapCount;
   }
-
+  /**
+  * Return the current MapTask count running on CPU 
+  */
+  public int countCPUMapTasks() {
+ 	int mapCount = 0;
+ 	for (TaskStatus ts : taskReports) {
+ 		TaskStatus.State state = ts.getRunState();
+ 		if (ts.getIsMap() && ts.runOnCPU() &&
+ 			  ((state == TaskStatus.State.RUNNING) ||
+ 			   (state == TaskStatus.State.UNASSIGNED) ||
+ 			    ts.inTaskCleanupPhase())){
+ 			mapCount++;
+ 		}
+ 	}
+ 	return mapCount;
+  }
+ 
+  /**
+  * Return the current MapTask count running on GPU 
+  */
+  public int countGPUMapTasks() {
+ 	int mapCount = 0;
+ 	for (TaskStatus ts : taskReports) {
+ 		TaskStatus.State state = ts.getRunState();
+ 		if (ts.getIsMap() && ts.runOnGPU() &&
+ 				((state == TaskStatus.State.RUNNING) ||
+ 				 (state == TaskStatus.State.UNASSIGNED) || 
+ 				  ts.inTaskCleanupPhase())) {
+ 			mapCount++;
+ 		}
+ 	}
+ 	return mapCount;
+  }
   /**
    * Get the number of occupied map slots.
    * @return the number of occupied map slots
@@ -459,13 +512,47 @@ public class TaskTrackerStatus implements Writable {
   }
   
   /**
+   * Get the number of occupied map slots on CPU
+   * @return the number of occupied map slots on CPU
+   */
+ public int countOccupiedCPUMapSlots() {
+	int cpuMapSlotsCount = 0;
+	for (TaskStatus ts : taskReports) {
+		if (ts.getIsMap() && ts.runOnCPU() && isTaskRunning(ts)) {
+			cpuMapSlotsCount += ts.getNumSlots();
+		}
+	}
+	return cpuMapSlotsCount;
+ }
+
+ /**
+ * Get the number of occupied map slots on GPU
+ * @return the number of occupied map slots on GPU
+ */
+ public int countOccupiedGPUMapSlots() {
+	int gpuMapSlotsCount = 0;
+	for (TaskStatus ts : taskReports) {
+		if (ts.getIsMap() && ts.runOnGPU() && isTaskRunning(ts)) {
+			gpuMapSlotsCount += ts.getNumSlots();
+		}
+	}
+	return gpuMapSlotsCount;
+ }
+ 
+  /**
    * Get available map slots.
    * @return available map slots
    */
   public int getAvailableMapSlots() {
     return getMaxMapSlots() - countOccupiedMapSlots();
   }
-  
+  /**
+   * Get available map slots on CPU
+   * @return available map slots
+   */
+  public int getAvailableCPUMapSlots() {
+    return getMaxCPUMapSlots() - countOccupiedMapSlots();
+  }
   /**
    * Get the number of running reduce tasks.
    * @return the number of running reduce tasks
@@ -515,11 +602,27 @@ public class TaskTrackerStatus implements Writable {
   }
 
   /**
-   * Get the maximum map slots for this node.
-   * @return the maximum map slots for this node
+   * Get the maximum map slots for this node. (CPU+GPU)
+   * @return the maximum map slots for this node (CPU+GPU)
    */
   public int getMaxMapSlots() {
-    return maxMapTasks;
+    return maxCPUMapSlots + maxGPUMapSlots;
+  }
+  
+  /**
+   * Get the maximum CPU map slots for this node.
+   * @return the maximum CPU map slots for this node
+   */
+  public int getMaxCPUMapSlots() {
+	return maxCPUMapSlots;
+  }
+	  
+  /**
+   * Get the maximum GPU map slots for this node.
+   * @return the maximum GPU map slots for this node
+   */
+  public int getMaxGPUMapSlots() {
+	return maxGPUMapSlots;
   }
   
   /**
@@ -664,7 +767,8 @@ public class TaskTrackerStatus implements Writable {
     out.writeInt(httpPort);
     out.writeInt(taskFailures);
     out.writeInt(dirFailures);
-    out.writeInt(maxMapTasks);
+    out.writeInt(maxCPUMapSlots);
+    out.writeInt(maxGPUMapSlots);
     out.writeInt(maxReduceTasks);
     resStatus.write(out);
     out.writeInt(taskReports.size());
@@ -681,7 +785,8 @@ public class TaskTrackerStatus implements Writable {
     this.httpPort = in.readInt();
     this.taskFailures = in.readInt();
     this.dirFailures = in.readInt();
-    this.maxMapTasks = in.readInt();
+    this.maxCPUMapSlots = in.readInt();
+    this.maxGPUMapSlots = in.readInt();  
     this.maxReduceTasks = in.readInt();
     resStatus.readFields(in);
     taskReports.clear();
